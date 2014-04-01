@@ -277,7 +277,7 @@ FROM v
 JOIN t ON lower(t.themekey::text) = lower(v.term)
 ),
 contrib as (
-select dataset_id::numeric,'Contributor'::text as vocabulary_id,
+select dataset_id::numeric,'Partner'::text as vocabulary_id,
 name 
 from ceic.dataset_org 
 where name ~ E'^[a-zA-Z1-9 _\.\-]+$'
