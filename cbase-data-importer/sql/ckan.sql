@@ -1,120 +1,122 @@
-set search_path=public;
+-- set search_path=public;
 
-create extension if not exists postgis;
-create extension if not exists plsh;
-create extension if not exists json_build;
--- Foreign Stuff
-create extension if not exists postgres_fdw;
+-- create extension if not exists postgis;
+-- create extension if not exists plsh;
+-- create extension if not exists json_build;
+-- -- Foreign Stuff
+-- create extension if not exists postgres_fdw;
 
-create server ceic
-FOREIGN DATA WRAPPER postgres_fdw 
-OPTIONS (
-	host 'ckan.casil.ucdavis.edu', 
-	dbname 'ceic', 
-	port '5432');
-
-
-drop schema e cascade;
-create schema e;
-
-drop schema ckan cascade;
-create schema ckan;
-
-create user mapping for quinn 
-server ceic
-options (user 'quinn',password 'r6ikQDjLv9fu');
-
-create foreign table if not exists e."vocabulary" (
-    id text NOT NULL,
-    name text NOT NULL
-) server ceic
-OPTIONS (
-	schema_name 'public'
-);
-
-create foreign table if not exists e."user" (
-    id text NOT NULL,
-    name text NOT NULL,
-    apikey text,
-    created timestamp without time zone,
-    about text,
-    openid text,
-    password text,
-    fullname text,
-    email text,
-    reset_key text,
-    sysadmin boolean DEFAULT false,
-    activity_streams_email_notifications boolean DEFAULT false
-) server ceic
-OPTIONS (
-	schema_name 'public'
-);
-
-CREATE foreign table if not exists e."group" (
-    id text NOT NULL,
-    name text NOT NULL,
-    title text,
-    description text,
-    created timestamp without time zone,
-    state text,
-    revision_id text,
-    type text NOT NULL,
-    approval_status text,
-    image_url text,
-    is_organization boolean DEFAULT false
-) server ceic
-OPTIONS (
-	schema_name 'public'
-);
+-- create server ceic
+-- FOREIGN DATA WRAPPER postgres_fdw 
+-- OPTIONS (
+-- 	host 'ckan.casil.ucdavis.edu', 
+-- 	dbname 'ceic', 
+-- 	port '5432');
 
 
-CREATE foreign TABLE if not exists e.package (
-    id text NOT NULL,
-    name character varying(100) NOT NULL,
-    title text,
-    version character varying(100),
-    url text,
-    notes text,
-    license_id text,
-    revision_id text,
-    author text,
-    author_email text,
-    maintainer text,
-    maintainer_email text,
-    state text,
-    type text,
-    owner_org text,
-    private boolean DEFAULT false
-) server ceic
-OPTIONS (
-	schema_name 'public'
-);
+-- drop schema e cascade;
+-- create schema e;
+
+-- drop schema ckan cascade;
+-- create schema ckan;
+
+-- create user mapping for quinn 
+-- server ceic
+-- options (user 'quinn',password 'r6ikQDjLv9fu');
+
+-- create foreign table if not exists e."vocabulary" (
+--     id text NOT NULL,
+--     name text NOT NULL
+-- ) server ceic
+-- OPTIONS (
+-- 	schema_name 'public'
+-- );
+
+-- create foreign table if not exists e."user" (
+--     id text NOT NULL,
+--     name text NOT NULL,
+--     apikey text,
+--     created timestamp without time zone,
+--     about text,
+--     openid text,
+--     password text,
+--     fullname text,
+--     email text,
+--     reset_key text,
+--     sysadmin boolean DEFAULT false,
+--     activity_streams_email_notifications boolean DEFAULT false
+-- ) server ceic
+-- OPTIONS (
+-- 	schema_name 'public'
+-- );
+
+-- CREATE foreign table if not exists e."group" (
+--     id text NOT NULL,
+--     name text NOT NULL,
+--     title text,
+--     description text,
+--     created timestamp without time zone,
+--     state text,
+--     revision_id text,
+--     type text NOT NULL,
+--     approval_status text,
+--     image_url text,
+--     is_organization boolean DEFAULT false
+-- ) server ceic
+-- OPTIONS (
+-- 	schema_name 'public'
+-- );
 
 
-create or replace FUNCTION public.ckan_api(host text,cmd text,dat json,key text) 
-RETURNS json as 
-$$
-BEGIN
---RAISE NOTICE 'ckan(Auth:%) %> %/%',key,dat,host,cmd;
-RETURN (ckan_api_sh(host,cmd,dat::text,key))::json;
-END;
-$$ LANGUAGE 'plpgsql';
+-- CREATE foreign TABLE if not exists e.package (
+--     id text NOT NULL,
+--     name character varying(100) NOT NULL,
+--     title text,
+--     version character varying(100),
+--     url text,
+--     notes text,
+--     license_id text,
+--     revision_id text,
+--     author text,
+--     author_email text,
+--     maintainer text,
+--     maintainer_email text,
+--     state text,
+--     type text,
+--     owner_org text,
+--     private boolean DEFAULT false
+-- ) server ceic
+-- OPTIONS (
+-- 	schema_name 'public'
+-- );
 
-create or replace FUNCTION public.ckan_api_sh(host text,cmd text,json text,key text) 
-RETURNS text as
-$$
-#! /bin/bash
-ckan=http://$1/api/3/action;
-#echo curl -s -H Authorization:$4 --data @- $ckan/$2 $3
-echo $3 | curl -s -H Authorization:$4 --data @- $ckan/$2
-$$ LANGUAGE plsh;
 
-create or replace FUNCTION public.rot13(in text)
-RETURNS text AS
-$$
-#! /bin/bash
-echo "$1" | tr '[N-ZA-Mn-za-m5-90-4]' '[A-Za-z0-9]'
-$$ LANGUAGE plsh;
+-- create or replace FUNCTION public.ckan_api(host text,cmd text,dat json,key text) 
+-- RETURNS json as 
+-- $$
+-- BEGIN
+-- --RAISE NOTICE 'ckan(Auth:%) %> %/%',key,dat,host,cmd;
+-- --RETURN (ckan_api_sh(host,cmd,regexp_replace(dat::text,'([;&])','\\\1','g'),key))::json;
+-- RETURN (ckan_api_sh(host,cmd,regexp_replace(dat::text,'([;&])','and','g'),key))::json;
+-- --RETURN (ckan_api_sh(host,cmd,dat::text,key))::json;
+-- END;
+-- $$ LANGUAGE 'plpgsql';
+
+-- create or replace FUNCTION public.ckan_api_sh(host text,cmd text,json text,key text) 
+-- RETURNS text as
+-- $$
+-- #! /bin/bash
+-- ckan=http://$1/api/3/action;
+-- #echo curl -s -H Authorization:$4 --data @- $ckan/$2 $3
+-- echo "$3" | curl -s -H Authorization:$4 --data @- $ckan/$2
+-- $$ LANGUAGE plsh;
+
+-- create or replace FUNCTION public.rot13(in text)
+-- RETURNS text AS
+-- $$
+-- #! /bin/bash
+-- echo "$1" | tr '[N-ZA-Mn-za-m5-90-4]' '[A-Za-z0-9]'
+-- $$ LANGUAGE plsh;
 
 drop schema ckan cascade;
 create schema ckan;
@@ -123,6 +125,8 @@ set search_path=ckan,public;
 create table ckan.dataset_keep(
 id integer,
 keep boolean,
+otech boolean,
+private boolean,
 title text);
 
 \COPY ckan.dataset_keep from dataset_keep.csv with csv header
@@ -239,16 +243,19 @@ VALUES
 ('Map Service','map')
 ),
 r as (
- select dataset_id,relation_type,related_resource_uri,mime_type,
- row_number() over (partition by dataset_id,relation_type)  as count from ceic.dataset_relation
+ select dataset_id,relation_type,related_resource_uri,
+ regexp_replace(mime_type,';.*','') as mime_type,
+ row_number() over (partition by dataset_id,relation_type)  as count 
+ from ceic.dataset_relation
  where resp_code ~~ '2__'::text OR resp_code ~~ '3__'::text
 )
-select dataset_id as id,build_json_array(
+select dataset_id as id,array_to_json(
 array_agg(build_json_object(
 'name',relation_type||case when (count=1) THEN '' ELSE '_'||count END,
 'format',relation_type,
-'url',related_resource_uri,
-'mimetype',mime_type))) as resources
+'mimetype',mime_type,
+'url',related_resource_uri
+))) as resources
 from r 
 join v 
 using (relation_type)
@@ -358,17 +365,17 @@ create or replace view ckan.dataset_extras
 AS 
 SELECT i.id,
 build_json_array(
-build_json_object('entered',
-      COALESCE(to_char(i.create_date::timestamp with time zone, 
-     'YYYY-MM-DD'::text), '2010-01-01'::text)),
-build_json_object('purpose',i.purpose),
-build_json_object('currentness',i.currentness),
-build_json_object('update_frequency',i.update),
-build_json_object('progress',i.progress),
-build_json_object('use_constraints',i.useconstraints),
-build_json_object('pkg_type',i.fedcat),
-build_json_object('spatial',spatial),
-build_json_object('org_name',cg.name)
+build_json_object('key','entered',
+       'value',COALESCE(to_char(i.create_date::timestamp with time zone, 
+      'YYYY-MM-DD'::text), '2010-01-01'::text)),
+build_json_object('key','purpose','value',i.purpose),
+build_json_object('key','currentness','value',i.currentness),
+build_json_object('key','update_frequency','value',i.update),
+build_json_object('key','progress','value',i.progress),
+build_json_object('key','use_constraints','value',i.useconstraints),
+build_json_object('key','pkg_type','value',i.fedcat),
+build_json_object('key','spatial','value',spatial::text),
+build_json_object('key','org_name','value',cg.name)
 ) as extras
 from ceic.dataset i
 left join ckan.dataset_spatial s on (i.id= s.dataset_id)
@@ -395,6 +402,61 @@ build_json_object(
 'mimetype',mime_type))) as resources
 from ceic.dataset_relation
 group by dataset_id;
+
+create or replace view ckan.all_datasets AS
+with n as (
+select  
+id,
+ceic_node_id,
+keep,
+left(regexp_replace(
+     regexp_replace(lower(trim(both from i.title)),'[^a-z_0-9]+','_','g'),
+                   '([^_][^_][^_][^_])[^_]+(_|$)','\1\2','g'),95) as name 
+from 
+ceic.dataset i join
+ckan.dataset_keep using (id)
+),
+r as (
+select id,
+name,
+keep,
+row_number() over (partition by keep,name order by id) 
+from n
+),
+idd as (
+select id,
+keep,
+case when (row_number>1) then name || '_'|| row_number ELSE name END as name
+from r
+)
+SELECT
+ i.id,
+ idd.keep,
+ i.title,
+ i.data_name as author,
+ i.data_email as author_email,
+ i.data_name as maintainer,
+ i.data_email as maintainer_email,
+-- license_id,
+not(p.public) as private,
+i.abstract as notes,
+'active'::text as state,
+'dataset'::text as type,
+coalesce(r.resources,'[]'::json) as resources,
+t.tags as tags,
+coalesce(e.extras,'[]'::json) as extras,
+-- "relationships_as_object",rel.rel_list,
+-- "relationships_as_subject",rel.sub_list,
+-- "groups",group.list
+cg.id as owner_org
+FROM ceic.dataset i 
+left join idd using (id)
+left join ckan.dataset_tags t using (id)
+left join ckan.dataset_extras e using (id)
+left join ckan.dataset_resources r using (id)
+left join ckan.dataset_is_public p using (id)
+left join ceic.ceic_node n on (i.ceic_node_id=n.id)
+join e."group" cg on (lower(n.shortname)=cg.name);
 
 
 create or replace view ckan.datasets AS
@@ -434,7 +496,7 @@ i.abstract as notes,
 'active'::text as state,
 'dataset'::text as type,
 r.resources as resources,
-t.tags as tags,
+---q--t.tags as tags,
 e.extras as extras,
 -- "relationships_as_object",rel.rel_list,
 -- "relationships_as_subject",rel.sub_list,
@@ -500,52 +562,67 @@ select
 from a join e.vocabulary v on (a.vocabulary_id=v.name) ;
 
 -- -- To install
--- with k as (
---  select apikey from e."user" where name='quinn'
--- ) 
--- select 
--- ckan_api_sh('ceic.casil.ucdavis.edu','vocabulary_create',v.vocabulary::text,
--- 	apikey) 
--- from ckan.vocabulary v,k;
+create table err_vocabulary as 
+with k as (
+ select apikey from e."user" where name='quinn'
+) 
+select 
+v.vocabulary,
+ckan_api('ceic.casil.ucdavis.edu','vocabulary_create',v.vocabulary,apikey) 
+from ckan.vocabulary v,k;
 
 -- You may want to install one at a time:
---with k as (
--- select apikey from e."user" where name='quinn'
---) 
---select 
---ckan_api('ceic.casil.ucdavis.edu','tag_create',t.tag,
---apikey) 
---from ckan.tag t,k where vocabulary_id='Contributor';
+create table err_tag as 
+with k as (
+select apikey from e."user" where name='quinn'
+) 
+select 
+t.tag,ckan_api('ceic.casil.ucdavis.edu','tag_create',t.tag,
+apikey) 
+from ckan.tag t,k where vocabulary_id='Contributor';
 
+create table err_user as 
+with k as (
+ select apikey from e."user" where name='quinn'
+) 
+select 
+c.user,ckan_api_sh('ceic.casil.ucdavis.edu','user_create',c.user::text,apikey) 
+from ckan."user" c,k;
 
--- with k as (
---  select apikey from e."user" where name='quinn'
--- ) 
--- select 
--- ckan_api_sh('ceic.casil.ucdavis.edu','user_create',c.user::text,apikey) 
--- from ckan."user" c,k;
+create table err_organization as 
+with k as (
+ select apikey from e."user" where name='quinn'
+) 
+select 
+o.organization,
+ckan_api('ceic.casil.ucdavis.edu','organization_create',o.organization,apikey) 
+from ckan.organization o,k;
 
--- with k as (
---  select apikey from e."user" where name='quinn'
--- ) 
--- select 
--- ckan_api('ceic.casil.ucdavis.edu','organization_create',o.organization,apikey) 
--- from ckan.organization o,k;
+create table err_package as 
+with k as (
+select apikey from e."user" where name='quinn'
+)
+select 
+p.package,
+ckan_api('ceic.casil.ucdavis.edu','package_create',p.package,apikey) 
+from ckan.package p,k;
 
+create table err_private as 
+with k as (
+select apikey from e."user" where name='quinn'
+),
+p as (
+ select p.owner_org as org_id,
+  array_agg(p.id) as datasets 
+ from e.package p join ckan.datasets d using (name) 
+ where d.private is true 
+ group by p.owner_org
+),
+j as (select row_to_json(p) as priv from p)
+select 
+priv,ckan_api('ceic.casil.ucdavis.edu','bulk_update_private',priv,apikey) 
+from j,k;
 
--- with k as (
--- select apikey from e."user" where name='quinn'
--- ),
--- p as (
---  select p.owner_org as org_id,
---   array_agg(p.id) as datasets 
---  from e.package p join ckan.datasets d using (name) 
---  where d.private is true 
---  group by p.owner_org),
--- j as (select row_to_json(p) as priv from p)
--- select 
--- ckan_api('ceic.casil.ucdavis.edu','bulk_update_private',priv,apikey) 
--- from j,k;
 
 -- psql -t -A --pset=footer -d gforge -c 'select to_json(array_agg(package)) from ckan.package' > ckan_package.json
 
